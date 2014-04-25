@@ -8,20 +8,23 @@ Zotero.HelloWorldZotero = {
     var selected_items = ZoteroPane.getSelectedItems();
     
     var newWindow = window.open('');
+    var d = newWindow.document,
+        e = d.documentElement,
+        g = d.body;
 
     var newWindowRoot = d3.select(newWindow.document.body);
     //newWindowRoot.append("p").text("New paragraph!");
     
-    var w = 960,
-        h = 500,
+    var width  = newWindow.innerWidth || e.clientWidth || g.clientWidth,
+        height = newWindow.innerHeight|| e.clientHeight|| g.clientHeight,
         nodes = {},
         node,
         links = [],
         link;
 
     var svg = newWindowRoot.append("svg")
-      .attr("width", w)
-      .attr("height", h);
+      .attr("width", width)
+      .attr("height", height);
 
     for (var i=0; i<selected_items.length; i++) {
       item = selected_items[i];
@@ -52,7 +55,7 @@ Zotero.HelloWorldZotero = {
     var force = d3.layout.force()
       .nodes(d3.values(nodes))
       .links(links)
-      .size([w, h])
+      .size([width, height])
       .charge(-300)
       .linkDistance(60)
       .on("tick",tick)
@@ -123,8 +126,15 @@ Zotero.HelloWorldZotero = {
       //.style("stroke-width", "1.5px")
       //.call(force.drag);
 
-    //svg.append("title")
-      //.text(function(d) { return d.name });
+    function updateWindow(){
+      width = newWindow.innerWidth || e.clientWidth || g.clientWidth;
+      height = newWindow.innerHeight|| e.clientHeight|| g.clientHeight;
+
+      svg.attr("width", width).attr("height", height);
+      force.size([width,height])
+        .start();
+    }
+    newWindow.onresize = updateWindow;
   },
 
   // Callback implementing the notify() method to pass to the Notifier
