@@ -28,16 +28,34 @@ Zotero.HelloWorldZotero = {
       .attr("width", width)
       .attr("height", height);
 
+    var min_year = Infinity,
+        max_year = 0,
+        year;
+
     for (var i=0; i<selected_items.length; i++) {
       item = selected_items[i];
       related_items = item.relatedItemsBidirectional;
       date = Zotero.Date.strToDate(item.getField("date"));
       node = { name: item.getField('title'), year: date.year, authors: item.getCreators() };
       nodes[node.name] = node;
+      year = parseFloat(node.year);
+      if (year < min_year) {
+        min_year = year;
+      }
+      if (year > max_year) {
+        max_year = year;
+      }
       for (var j=0; j<related_items.length; j++) {
         related_item = Zotero.Items.get(related_items[j]);
         date = Zotero.Date.strToDate(related_item.getField("date"));
         var related_node = { name: related_item.getField('title'), year: date.year, authors: related_item.getCreators() };
+        year = parseFloat(related_node.year);
+        if (year < min_year) {
+          min_year = year;
+        }
+        if (year > max_year) {
+          max_year = year;
+        }
         link = { source: node, target: related_node };
         links.push(link);
       }
@@ -49,12 +67,16 @@ Zotero.HelloWorldZotero = {
       link.target = nodes[link.target.name] || (nodes[link.target.name] = link.target);
     });
 
+    var nodes_array = d3.values(nodes);
+
     var force = d3.layout.force()
-      .nodes(d3.values(nodes))
+      .nodes(nodes_array)
       .links(links)
       .size([width, height])
       .charge(-300)
-      .linkDistance(60)
+      .gravity(0)
+      .linkDistance(20)
+      .linkStrength(0.1)
       .on("tick",tick)
       .start();
 
@@ -70,22 +92,38 @@ Zotero.HelloWorldZotero = {
       .enter().append("circle")
       .attr("r", 6)
       .attr("stroke", "#333")
-      .attr("fill", "#ccc")
-      .call(force.drag);
+      .attr("fill", "#ccc");
 
     circle.append("svg:title")
       .text(function(d) { return d.name; })
+
+    circle.call(force.drag);
 
     var text = svg.append("g").selectAll("text")
       .data(force.nodes())
       .enter().append("text")
       .attr("x", 8)
-      .attr("y", ".31em")
+      .attr("y", -8)
+      //.attr("y", ".31em")
       .attr("font-family", "sans-serif")
       .attr("font-size", "10px")
       .text(function(d) { return d.authors[0].ref.lastName + d.year; });
 
-    function tick() {
+    function tick(e) {
+      width = newWindow.innerWidth || e.clientWidth || g.clientWidth;
+      height = newWindow.innerHeight|| e.clientHeight|| g.clientHeight;
+      var y0 = height/2,
+          x0 = width/2,
+          x_min = 0 + width/3,
+          x_max = width - width/3,
+          k = 0.1 * e.alpha;
+      nodes_array.forEach(function(o,i) {
+        var age = (parseFloat(o.year)-min_year)/(max_year-min_year);
+        var x_nom = age*x_max + (1-age)*x_min;
+        var y_nom = y0;
+        o.y += (y_nom - o.y)*k;
+        o.x += (x_nom - o.x)*k;
+      });
       line.attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
         .attr("x2", function(d) { return d.target.x; })
