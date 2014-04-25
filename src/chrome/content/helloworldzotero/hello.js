@@ -1,24 +1,4 @@
 Zotero.HelloWorldZotero = {
-	DB: null,
-	
-	init: function () {
-		// Connect to (and create, if necessary) helloworld.sqlite in the Zotero directory
-		this.DB = new Zotero.DBConnection('helloworld');
-		
-		if (!this.DB.tableExists('changes')) {
-			this.DB.query("CREATE TABLE changes (num INT)");
-			this.DB.query("INSERT INTO changes VALUES (0)");
-		}
-		
-		// Register the callback in Zotero as an item observer
-		var notifierID = Zotero.Notifier.registerObserver(this.notifierCallback, ['item']);
-		
-		// Unregister callback when the window closes (important to avoid a memory leak)
-		window.addEventListener('unload', function(e) {
-				Zotero.Notifier.unregisterObserver(notifierID);
-		}, false);
-	},
-	
 	drawGraph: function() {
     var Zotero = Components.classes["@zotero.org/Zotero;1"]
       .getService(Components.interfaces.nsISupports).wrappedJSObject;
@@ -47,12 +27,18 @@ Zotero.HelloWorldZotero = {
       item = selected_items[i];
       related_items = item.relatedItemsBidirectional;
       node = { name: item.getField('title') };
+      //node = {name:  moment(item.getField("date")).format("YYYY") };
       //nodes.push(node);
       nodes[node.name] = node;
       for (var j=0; j<related_items.length; j++) {
         related_item = Zotero.Items.get(related_items[j]);
         //alert(related_item.getField('title'))
         link = { source: node.name, target: related_item.getField('title') };
+        //if (parseint(item.getField("year")) < parseint(related_item.getField("year)"))) {
+          //link = { source: node.name, target: related_item.getField('title') };
+        //} else {
+          //link = { source:related_item.getField('title'), target:  node.name };
+        //}
         links.push(link);
       }
     }
@@ -72,9 +58,15 @@ Zotero.HelloWorldZotero = {
       .on("tick",tick)
       .start();
 
-    var path = svg.append("g").selectAll("path")
+//var link = svg.selectAll(".link")
+      //.data(graph.links)
+    //.enter().append("line")
+      //.attr("class", "link")
+      //.style("stroke-width", function(d) { return Math.sqrt(d.value); });
+
+    var line = svg.append("g").selectAll("line")
       .data(force.links())
-      .enter().append("path")
+      .enter().append("line")
       .attr("fill", "none")
       .attr("stroke", "#666")
       .attr("stroke-width", "1.5px");
@@ -87,6 +79,9 @@ Zotero.HelloWorldZotero = {
       .attr("fill", "#ccc")
       .call(force.drag);
 
+    circle.append("svg:title")
+      .text(function(d) { return d.name; })
+
     var text = svg.append("g").selectAll("text")
       .data(force.nodes())
       .enter().append("text")
@@ -94,11 +89,15 @@ Zotero.HelloWorldZotero = {
       .attr("y", ".31em")
       .attr("font-family", "sans-serif")
       .attr("font-size", "10px")
-      .text(function(d) { return d.name; });
+      .text(function(d) { return d.name.substring(0,10); });
 
     function tick() {
-      path.attr("d", linkArc);
-      circle.attr("transform", transform);
+      line.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+      circle.attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
       text.attr("transform", transform);
     }
 
@@ -187,6 +186,3 @@ Zotero.HelloWorldZotero = {
 		}
 	}
 };
-
-// Initialize the utility
-window.addEventListener('load', function(e) { Zotero.HelloWorldZotero.init(); }, false);
