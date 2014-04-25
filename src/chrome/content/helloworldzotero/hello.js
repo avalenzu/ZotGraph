@@ -58,12 +58,6 @@ Zotero.HelloWorldZotero = {
       .on("tick",tick)
       .start();
 
-//var link = svg.selectAll(".link")
-      //.data(graph.links)
-    //.enter().append("line")
-      //.attr("class", "link")
-      //.style("stroke-width", function(d) { return Math.sqrt(d.value); });
-
     var line = svg.append("g").selectAll("line")
       .data(force.links())
       .enter().append("line")
@@ -111,17 +105,6 @@ Zotero.HelloWorldZotero = {
     function transform(d) {
       return "translate(" + d.x + "," + d.y + ")";
     }
-    //svg.selectAll("path")
-      //.data(nodes)
-      //.enter().append("path")
-      //.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-      //.attr("d", d3.svg.symbol()
-          //.size(function(d) { return d.size; })
-          //.type(function(d) { return d.type; }))
-      //.style("fill", "steelblue")
-      //.style("stroke", "white")
-      //.style("stroke-width", "1.5px")
-      //.call(force.drag);
 
     function updateWindow(){
       width = newWindow.innerWidth || e.clientWidth || g.clientWidth;
