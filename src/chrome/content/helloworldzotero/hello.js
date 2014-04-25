@@ -19,6 +19,8 @@ Zotero.HelloWorldZotero = {
         height = newWindow.innerHeight|| e.clientHeight|| g.clientHeight,
         nodes = {},
         node,
+        related_node,
+        date,
         links = [],
         link;
 
@@ -29,27 +31,22 @@ Zotero.HelloWorldZotero = {
     for (var i=0; i<selected_items.length; i++) {
       item = selected_items[i];
       related_items = item.relatedItemsBidirectional;
-      node = { name: item.getField('title') };
-      //node = {name:  moment(item.getField("date")).format("YYYY") };
-      //nodes.push(node);
+      date = Zotero.Date.strToDate(item.getField("date"));
+      node = { name: item.getField('title'), year: date.year, authors: item.getCreators() };
       nodes[node.name] = node;
       for (var j=0; j<related_items.length; j++) {
         related_item = Zotero.Items.get(related_items[j]);
-        //alert(related_item.getField('title'))
-        link = { source: node.name, target: related_item.getField('title') };
-        //if (parseint(item.getField("year")) < parseint(related_item.getField("year)"))) {
-          //link = { source: node.name, target: related_item.getField('title') };
-        //} else {
-          //link = { source:related_item.getField('title'), target:  node.name };
-        //}
+        date = Zotero.Date.strToDate(related_item.getField("date"));
+        var related_node = { name: related_item.getField('title'), year: date.year, authors: related_item.getCreators() };
+        link = { source: node, target: related_node };
         links.push(link);
       }
     }
 
     // Compute the distinct nodes from the links.
     links.forEach(function(link) {
-      link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
-      link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+      link.source = nodes[link.source.name] || (nodes[link.source.name] = link.source);
+      link.target = nodes[link.target.name] || (nodes[link.target.name] = link.target);
     });
 
     var force = d3.layout.force()
@@ -92,7 +89,7 @@ Zotero.HelloWorldZotero = {
       .attr("y", ".31em")
       .attr("font-family", "sans-serif")
       .attr("font-size", "10px")
-      .text(function(d) { return d.name.substring(0,10); });
+      .text(function(d) { return d.authors[0].ref.lastName + d.year; });
 
     function tick() {
       line.attr("x1", function(d) { return d.source.x; })
