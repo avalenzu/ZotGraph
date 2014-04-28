@@ -18,6 +18,7 @@ Zotero.HelloWorldZotero = {
     var width  = newWindow.innerWidth || e.clientWidth || g.clientWidth,
         height = newWindow.innerHeight|| e.clientHeight|| g.clientHeight,
         nodes = {},
+        link_nodes = [],
         node,
         related_node,
         date,
@@ -65,18 +66,24 @@ Zotero.HelloWorldZotero = {
     links.forEach(function(link) {
       link.source = nodes[link.source.name] || (nodes[link.source.name] = link.source);
       link.target = nodes[link.target.name] || (nodes[link.target.name] = link.target);
+      for (var i=0; i<3; i++) {
+        link_nodes.push({
+          source: nodes[link.source.name], 
+          target: nodes[link.target.name],
+          pos: (i+1)/4 
+        });
+      }
     });
 
     var nodes_array = d3.values(nodes);
 
     var force = d3.layout.force()
-      .nodes(nodes_array)
+      .nodes(nodes_array.concat(link_nodes))
       .links(links)
       .size([width, height])
-      .charge(-300)
+      .charge(-500)
       .gravity(0)
-      .linkDistance(20)
-      .linkStrength(0.1)
+      .linkDistance(60)
       .on("tick",tick)
       .start();
 
@@ -87,9 +94,10 @@ Zotero.HelloWorldZotero = {
       .attr("stroke", "#666")
       .attr("stroke-width", "1.5px");
 
-    var circle = svg.append("g").selectAll("circle")
-      .data(force.nodes())
+    var circle = svg.append("g").selectAll(".node")
+      .data(nodes_array)
       .enter().append("circle")
+      .attr("class", "node")
       .attr("r", 6)
       .attr("stroke", "#333")
       .attr("fill", "#ccc");
@@ -100,7 +108,8 @@ Zotero.HelloWorldZotero = {
     circle.call(force.drag);
 
     var text = svg.append("g").selectAll("text")
-      .data(force.nodes())
+      //.data(force.nodes())
+      .data(nodes_array)
       .enter().append("text")
       .attr("x", 8)
       .attr("y", -8)
@@ -109,27 +118,41 @@ Zotero.HelloWorldZotero = {
       .attr("font-size", "10px")
       .text(function(d) { return d.authors[0].ref.lastName + d.year; });
 
+    var link_node = svg.selectAll(".link-node")
+      .data(link_nodes)
+      .enter().append("circle")
+      .attr("class","link-node")
+      .attr("r",0)
+      .style("fill","#666");
+
     function tick(e) {
       width = newWindow.innerWidth || e.clientWidth || g.clientWidth;
       height = newWindow.innerHeight|| e.clientHeight|| g.clientHeight;
       var y0 = height/2,
           x0 = width/2,
-          x_min = 0 + width/3,
-          x_max = width - width/3,
-          k = 0.1 * e.alpha;
+          x_min = 0 + width/4,
+          x_max = width - width/4,
+          k = 0.5 * e.alpha;
+          kx = 0.5;
       nodes_array.forEach(function(o,i) {
         var age = (parseFloat(o.year)-min_year)/(max_year-min_year);
         var x_nom = age*x_max + (1-age)*x_min;
         var y_nom = y0;
         o.y += (y_nom - o.y)*k;
-        o.x += (x_nom - o.x)*k;
+        o.x += (x_nom - o.x)*kx;
       });
+
+      link_node.attr("cx", function(d) { return d.x = d.pos*d.source.x + (1-d.pos)*d.target.x; })
+        .attr("cy", function(d) { return d.y = d.pos*d.source.y + (1-d.pos)*d.target.y; })
+
       line.attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
         .attr("x2", function(d) { return d.target.x; })
         .attr("y2", function(d) { return d.target.y; });
+
       circle.attr("cx", function(d) { return d.x; })
         .attr("cy", function(d) { return d.y; });
+
       text.attr("transform", transform);
     }
 
